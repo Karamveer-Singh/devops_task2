@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+    tools{
+        nodejs 'nodejs-23'
+    }
+    stages {
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/jaiswaladi246/Demo-NodeJs-WebPage.git'
+            }
+        }
+        stage('Install Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+        stage('OWASP Dependency Check') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ ', odcInstallation: 'DP'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'a04ed8e4-e21c-44d0-8436-d97769a81644', toolName: 'docker', url: 'https://hub.docker.com') {
+                        sh "docker build -t demonodejs ."
+                        sh "docker tag demonodejs karamveersingh132/nodejs:latest"
+                        sh "docker push karamveersingh132/nodejs:latest"
+                    }
+                }
+            }
+        }
+    }
+}
